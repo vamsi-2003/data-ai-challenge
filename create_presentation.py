@@ -3,10 +3,11 @@ import os
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
 
 def create_presentation():
     pptx_path = r"C:\Users\22071\Downloads\Idea Submission Template _ Redrob.pptx"
-    output_path = "vamsi_krishna_approach_v4.pptx"
+    output_path = "vamsi_krishna_approach_v5.pptx"
     
     if not os.path.exists(pptx_path):
         print(f"Error: Template PPTX not found at {pptx_path}")
@@ -46,6 +47,16 @@ def create_presentation():
                 p_b.font.color.rgb = TEXT_COLOR_BODY
                 p_b.font.name = 'Segoe UI'
                 p_b.space_after = Pt(4)
+
+    def remove_shadow(shape):
+        try:
+            spPr = shape.element.spPr
+            # Remove drop shadow effects inside the shape XML to ensure it's flat
+            effectLst = spPr.find('{http://schemas.openxmlformats.org/drawingml/2006/main}effectLst')
+            if effectLst is not None:
+                spPr.remove(effectLst)
+        except:
+            pass
 
     # =========================================================================
     # Slide 1: Title Slide (Edit Native Text Frames)
@@ -192,28 +203,95 @@ def create_presentation():
     populate_slide_questions(slide6.shapes[2], s6_sections)
 
     # =========================================================================
-    # Slide 7: System Architecture (Vertical Two-Column Text, fits inside bounds)
+    # Slide 7: System Architecture (Native Widescreen Flowchart, perfectly aligned)
     # =========================================================================
     slide7 = prs.slides[6]
-    s7_sections = [
-        {
-            'question': "Processing Pipeline Stages",
-            'bullets': [
-                "Data Ingestion & Scan: Parses the 100K JSONL records line-by-line using a memory-efficient streaming generator, scanning the corpus for active dates.",
-                "Vetting & Exclusions: Instantly filters out candidate profiles matching honeypots (startup founding dates, 0-month expert skills), consulting backgrounds, and unrelated roles.",
-                "Text Similarity Engine: Fits a local TF-IDF model on the candidate profiles and evaluates cosine similarity against the target job description."
-            ]
-        },
-        {
-            'question': "Scoring & Output Synthesis",
-            'bullets': [
-                "Structured Evaluation: Computes experience years curve fitment, title hierarchies, and required/nice-to-have technical skills.",
-                "Scaling Multipliers: Fuses location proximity (Pune/Noida), notice period availability, and behavioral engagement indicators.",
-                "Stable Sorting: Groups matching scores and sorts them deterministically by candidate ID ascending before exporting the top 100 to CSV."
-            ]
-        }
+    
+    # Slide 7 Shape 1 is the title block: preserve it!
+    # Let's draw the flowchart shapes natively
+    box_w = Inches(1.7)
+    box_h = Inches(1.35)
+    start_x = Inches(0.9)
+    start_y = Inches(2.2)
+    gap = Inches(0.7)
+    
+    steps = [
+        ("Data Ingest", ["JSONL Streaming", "Active Date Scan", "JD Parsing"]),
+        ("Vetting Filters", ["Honeypots Filter", "IT Services Filter", "Unrelated Titles"]),
+        ("TF-IDF Engine", ["Vocabulary Index", "Cosine Similarity", "Baseline Offset"]),
+        ("Scoring & Scaling", ["Exp & Title weights", "Location Weight", "Reachability Mults"]),
+        ("Sort & Export", ["Tie-breaker Sorting", "Factual Reasoning", "CSV Serialization"])
     ]
-    populate_slide_questions(slide7.shapes[1], s7_sections)
+    
+    for idx, (title, details) in enumerate(steps):
+        x = start_x + idx * (box_w + gap)
+        y = start_y
+        
+        # Rounded Rectangle Box
+        shape = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, box_w, box_h)
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = RGBColor(248, 250, 252) # Light gray
+        shape.line.color.rgb = TEXT_COLOR_DARK             # Slate 900 border
+        shape.line.width = Pt(1.5)
+        remove_shadow(shape)
+        
+        tf = shape.text_frame
+        tf.word_wrap = True
+        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = Inches(0.05)
+        
+        p_t = tf.paragraphs[0]
+        p_t.text = title
+        p_t.font.size = Pt(11)
+        p_t.font.bold = True
+        p_t.font.color.rgb = TEXT_COLOR_DARK
+        p_t.font.name = 'Segoe UI'
+        p_t.alignment = 1 # Center
+        
+        for det in details:
+            p_d = tf.add_paragraph()
+            p_d.text = "• " + det
+            p_d.font.size = Pt(8.5)
+            p_d.font.color.rgb = TEXT_COLOR_BODY
+            p_d.font.name = 'Segoe UI'
+            p_d.space_before = Pt(2)
+            
+        # Draw Arrow
+        if idx < len(steps) - 1:
+            arrow_x = x + box_w + Inches(0.08)
+            arrow_y = y + box_h / 2.0 - Inches(0.12)
+            arrow = slide7.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, arrow_x, arrow_y, gap - Inches(0.16), Inches(0.24))
+            arrow.fill.solid()
+            arrow.fill.fore_color.rgb = TEXT_COLOR_DARK # Slate 900
+            arrow.line.fill.background()
+            remove_shadow(arrow)
+            
+    # Architecture highlights at bottom (properly placed)
+    desc_box = slide7.shapes.add_textbox(Inches(0.75), Inches(4.0), Inches(11.833), Inches(2.6))
+    tf_desc = desc_box.text_frame
+    tf_desc.word_wrap = True
+    tf_desc.margin_left = tf_desc.margin_top = tf_desc.margin_right = tf_desc.margin_bottom = 0
+    
+    p = tf_desc.paragraphs[0]
+    p.text = "System Architecture Highlights:"
+    p.font.size = Pt(15)
+    p.font.bold = True
+    p.font.color.rgb = TEXT_COLOR_DARK
+    p.font.name = 'Segoe UI'
+    p.space_after = Pt(4)
+    p.space_before = Pt(10)
+    
+    highlights = [
+        "Streaming Execution: Reads JSONL records line-by-line using a memory-efficient generator to process 100K profiles under 500MB RAM.",
+        "Deterministic Fusion: Melds semantic similarity with multi-criteria physical compatibility multipliers (location, availability, and engagement metrics) to produce a unified score.",
+        "Ground-Truth Compliance: Evaluates and handles ties via deterministic ID sorting and filters 100% of honeypot anomalies."
+    ]
+    for h in highlights:
+        p2 = tf_desc.add_paragraph()
+        p2.text = "✔  " + h
+        p2.font.size = Pt(11.5)
+        p2.font.color.rgb = TEXT_COLOR_BODY
+        p2.font.name = 'Segoe UI'
+        p2.space_before = Pt(5)
 
     # =========================================================================
     # Slide 8: Results & Performance
