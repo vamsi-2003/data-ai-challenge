@@ -8,12 +8,33 @@ Our system ranks candidates based on a hybrid matching system of semantic TF-IDF
 
 ```text
 ├── rank.py                       # Core ranking and scoring script
-├── vamsi_krishna.csv          # Generated ranked output of top 100 candidates
+├── vamsi_krishna.csv             # Generated ranked output of top 100 candidates
+├── vamsi_krishna_approach.pptx   # Final presentation slide deck
 ├── submission_metadata.yaml      # Submission metadata
 ├── README.md                     # Documentation and setup (this file)
 ├── validate_submission.py        # Provided validator script
 ├── candidate_schema.json         # Candidate JSON schema
-└── job_description.md            # Role description markdown
+├── job_description.md            # Role description markdown
+├── app.py                        # Streamlit application for the interactive Sandbox
+└── requirements.txt              # Project package dependencies
+```
+
+## Hugging Face Space Sandbox (Live Demo)
+
+A live interactive sandbox running this candidate scoring engine is hosted on Hugging Face Spaces:
+👉 **[Hugging Face Space Sandbox](https://huggingface.co/spaces/vamsi-2003/data-ai-challenge)**
+
+### Features of the Sandbox:
+* **Interactive UI**: Upload your own candidates JSON/JSONL file or run immediately using the preloaded `sample_candidates.json` dataset.
+* **Real-time Scoring & Vetting**: Instantly applies honeypot detection, consulting-only filters, unrelated title exclusions, experience constraints, location multipliers, and notice period weights.
+* **Programmatic Reasoning**: Shows the exact, fact-based justification for why a candidate is ranked at a given position.
+* **Export Capabilities**: Download the generated submission CSV matching the validation format requirements.
+
+### Running the Sandbox Locally:
+To run the Streamlit sandbox application locally:
+```bash
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
 ## Quick Start & Setup
