@@ -3,11 +3,10 @@ import os
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_SHAPE
 
 def create_presentation():
     pptx_path = r"C:\Users\22071\Downloads\Idea Submission Template _ Redrob.pptx"
-    output_path = "vamsi_krishna_approach_final.pptx"
+    output_path = "vamsi_krishna_approach_v4.pptx"
     
     if not os.path.exists(pptx_path):
         print(f"Error: Template PPTX not found at {pptx_path}")
@@ -48,15 +47,6 @@ def create_presentation():
                 p_b.font.name = 'Segoe UI'
                 p_b.space_after = Pt(4)
 
-    def remove_shadow(shape):
-        try:
-            spPr = shape.element.spPr
-            effectLst = spPr.find('{http://schemas.openxmlformats.org/drawingml/2006/main}effectLst')
-            if effectLst is not None:
-                spPr.remove(effectLst)
-        except:
-            pass
-
     # =========================================================================
     # Slide 1: Title Slide (Edit Native Text Frames)
     # =========================================================================
@@ -87,13 +77,12 @@ def create_presentation():
         {
             'question': "What differentiates your approach from traditional candidate matching systems?",
             'bullets': [
-                "Keyword-Stuffing Resistance: Evaluates skills strictly by weighting proficiency (expert vs beginner) and duration (capped at 36 months) rather than simple text counts.",
+                "Keyword-Stuffing Resistance: Evaluates skills strictly by weighting proficiency (expert vs beginner) and duration in months to filter candidates who just list keywords.",
                 "Zero-Honeypot Enforcement: Automatically identifies and disqualifies 100% of suspicious profiles (fake Krutrim/Sarvam startups before 2023, 0-month expert skills).",
                 "Operational Realism: Incorporates availability (notice period <=30 days) and location proximity (Noida/Pune local) to maximize hiring probability."
             ]
         }
     ]
-    # Shape 2 has the placeholder questions on Slide 2
     populate_slide_questions(slide2.shapes[2], s2_sections)
 
     # =========================================================================
@@ -113,9 +102,9 @@ def create_presentation():
         {
             'question': "Which candidate signals are most important? / How do we evaluate fit beyond keyword matching?",
             'bullets': [
-                "Experience Years (25% Weight): Scored high for 5-9 years; linear decay below 5 and slow decay above 9 to prioritize senior fitment.",
-                "Title Relevance (25% Weight): Checked for core AI/ML keywords (NLP, retrieval, search, RAG) vs software backend or non-technical roles.",
-                "Skill Depth (50% Weight): Weighted by proficiency (expert=1.0) and duration (capped at 36 months).",
+                "Experience Years (25% Influence): Scored high for 5-9 years; scales down linearly below 5 and decays gradually above 9 to prioritize senior fitment.",
+                "Title Relevance (25% Influence): Checked for core AI/ML keywords (NLP, retrieval, search, RAG) vs software backend or non-technical roles.",
+                "Skill Depth (50% Influence): Evaluated based on proficiency levels and duration of matching experience.",
                 "Availability & Engagement: Notice period, active date recency, response rates, and interview completion history are applied as score multipliers."
             ]
         }
@@ -137,14 +126,14 @@ def create_presentation():
             'question': "What models, algorithms, or heuristics are used?",
             'bullets': [
                 "Models TF-IDF (15,000 vocabulary limit) and Cosine Similarity to evaluate text alignment.",
-                "Uses a custom experience scoring curve: y = years / 5.0 if <5, 1.0 if 5-9, and 1.0 - (years - 9) * 0.1 if >9.",
+                "Uses a custom experience scoring curve: scores are maximized at 1.0 for the 5-9 years band, decaying linearly for juniors, and decaying gradually for senior candidates.",
                 "Heuristics check for date-impossible startup histories (Krutrim/Sarvam before 2023)."
             ]
         },
         {
             'question': "How are multiple candidate signals combined into a final ranking?",
             'bullets': [
-                "Fused via multiplicative scaling: Final Score = (Semantic Textual Match + Baseline Offset) x Structured Compatibility Score x Location Weight x Notice Period Multiplier x Behavioral Engagement Multiplier.",
+                "Fused via multiplicative scaling: Final Score is computed by scaling the Semantic Textual Match (with baseline smoothing) by the Structured Compatibility Score, Location Weight, Notice Period Multiplier, and Behavioral Engagement Multiplier.",
                 "Ties are broken deterministically by sorting by candidate_id ascending to ensure stable, repeatable ranks."
             ]
         }
@@ -203,93 +192,28 @@ def create_presentation():
     populate_slide_questions(slide6.shapes[2], s6_sections)
 
     # =========================================================================
-    # Slide 7: System Architecture (Draw native diagram on slide 7)
+    # Slide 7: System Architecture (Vertical Two-Column Text, fits inside bounds)
     # =========================================================================
     slide7 = prs.slides[6]
-    
-    # Draw flowchart shapes natively
-    box_w = Inches(1.85)
-    box_h = Inches(1.5)
-    start_x = Inches(0.8)
-    start_y = Inches(2.3)
-    gap = Inches(0.6)
-    
-    steps = [
-        ("Data Ingestion\n& Inactivity Scan", ["candidates.jsonl Ingest", "Max Active Date Scan", "JD Text Parsing"]),
-        ("Pre-Filtering\nEngine", ["Honeypots Excluded", "Consulting Excluded", "Non-Tech Title Filter"]),
-        ("TF-IDF Vector\nSimilarity Engine", ["TfidfVectorizer Fit", "Cosine Similarity Matrix", "Offset Calculation"]),
-        ("Structured Scoring\n& Multipliers", ["Exp / Title / Skill weights", "Location Relocation Mult", "Notice Period & Behavior"]),
-        ("Ranking\n& Export Layer", ["Tie-breaker Sort", "Factual Reasoning Comp", "vamsi_krishna.csv Out"])
+    s7_sections = [
+        {
+            'question': "Processing Pipeline Stages",
+            'bullets': [
+                "Data Ingestion & Scan: Parses the 100K JSONL records line-by-line using a memory-efficient streaming generator, scanning the corpus for active dates.",
+                "Vetting & Exclusions: Instantly filters out candidate profiles matching honeypots (startup founding dates, 0-month expert skills), consulting backgrounds, and unrelated roles.",
+                "Text Similarity Engine: Fits a local TF-IDF model on the candidate profiles and evaluates cosine similarity against the target job description."
+            ]
+        },
+        {
+            'question': "Scoring & Output Synthesis",
+            'bullets': [
+                "Structured Evaluation: Computes experience years curve fitment, title hierarchies, and required/nice-to-have technical skills.",
+                "Scaling Multipliers: Fuses location proximity (Pune/Noida), notice period availability, and behavioral engagement indicators.",
+                "Stable Sorting: Groups matching scores and sorts them deterministically by candidate ID ascending before exporting the top 100 to CSV."
+            ]
+        }
     ]
-    
-    for idx, (title, details) in enumerate(steps):
-        x = start_x + idx * (box_w + gap)
-        y = start_y
-        
-        # Rounded Rectangle Box
-        shape = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, box_w, box_h)
-        shape.fill.solid()
-        shape.fill.fore_color.rgb = RGBColor(248, 250, 252) # Slate 50
-        shape.line.color.rgb = TEXT_COLOR_DARK             # Slate 900 border
-        shape.line.width = Pt(1.5)
-        remove_shadow(shape)
-        
-        tf = shape.text_frame
-        tf.word_wrap = True
-        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = Inches(0.06)
-        
-        p = tf.paragraphs[0]
-        p.text = title
-        p.font.size = Pt(11)
-        p.font.bold = True
-        p.font.color.rgb = TEXT_COLOR_DARK
-        p.font.name = 'Segoe UI'
-        p.alignment = 1 # Center
-        
-        for det in details:
-            p2 = tf.add_paragraph()
-            p2.text = "• " + det
-            p2.font.size = Pt(8)
-            p2.font.color.rgb = TEXT_COLOR_BODY
-            p2.font.name = 'Segoe UI'
-            p2.space_before = Pt(3)
-            
-        # Draw Arrow
-        if idx < len(steps) - 1:
-            arrow_x = x + box_w + Inches(0.05)
-            arrow_y = y + box_h / 2.0 - Inches(0.12)
-            arrow = slide7.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, arrow_x, arrow_y, gap - Inches(0.1), Inches(0.24))
-            arrow.fill.solid()
-            arrow.fill.fore_color.rgb = TEXT_COLOR_DARK # Slate 900
-            arrow.line.fill.background()
-            remove_shadow(arrow)
-            
-    # Architecture highlights at bottom
-    desc_box = slide7.shapes.add_textbox(Inches(0.75), Inches(4.2), Inches(11.833), Inches(2.4))
-    tf_desc = desc_box.text_frame
-    tf_desc.word_wrap = True
-    tf_desc.margin_left = tf_desc.margin_top = tf_desc.margin_right = tf_desc.margin_bottom = 0
-    
-    p = tf_desc.paragraphs[0]
-    p.text = "Pipeline Highlights:"
-    p.font.size = Pt(15)
-    p.font.bold = True
-    p.font.color.rgb = TEXT_COLOR_DARK
-    p.font.name = 'Segoe UI'
-    p.space_after = Pt(4)
-    
-    highlights = [
-        "Streaming Execution: Reads JSONL records line-by-line using a memory-efficient generator to process 100K profiles under 500MB RAM.",
-        "Deterministic Fusion: Melds semantic similarity with multi-criteria physical compatibility multipliers (location, availability, and engagement metrics) to produce a unified score.",
-        "Ground-Truth Compliance: Evaluates and handles ties via deterministic ID sorting and filters 100% of honeypot anomalies."
-    ]
-    for h in highlights:
-        p2 = tf_desc.add_paragraph()
-        p2.text = "✔  " + h
-        p2.font.size = Pt(12)
-        p2.font.color.rgb = TEXT_COLOR_BODY
-        p2.font.name = 'Segoe UI'
-        p2.space_before = Pt(5)
+    populate_slide_questions(slide7.shapes[1], s7_sections)
 
     # =========================================================================
     # Slide 8: Results & Performance
@@ -338,13 +262,18 @@ def create_presentation():
     slide10 = prs.slides[9]
     s10_sections = [
         {
-            'question': "What assets are complete and available in the workspace?",
+            'question': "What are the core deliverables submitted for this challenge?",
             'bullets': [
-                "GitHub Repository: https://github.com/vamsi-2003/data-ai-challenge (contains full codebase, CSV, and PPTX).",
-                "HuggingFace Space Demo Link: https://huggingface.co/spaces/vamsi-2003/data-ai-challenge",
-                "Ranked Output (CSV): vamsi_krishna.csv (contains the top 100 candidates with custom rationales)",
-                "Submission Metadata: submission_metadata.yaml (containing team name, leader name, and methodology)",
-                "Approach Presentation: vamsi_krishna_approach_v3.pptx (this generated slide deck, ready for PDF export)"
+                "Candidate Shortlist CSV: The final vamsi_krishna.csv file containing the top 100 candidates with validated ranks, scores, and custom rationales.",
+                "Approach Presentation Deck: This document summarizing our methodology, scoring logic, and engineering design.",
+                "System Metadata: A yaml configuration file specifying the compute environment, reproducibility commands, and AI usage declarations."
+            ]
+        },
+        {
+            'question': "Where are the code and live demonstration hosted?",
+            'bullets': [
+                "GitHub Code Repository: Complete codebase, including the ranking algorithm, PowerPoint generator, and setup instructions (https://github.com/vamsi-2003/data-ai-challenge).",
+                "Hugging Face Space Sandbox: A live interactive environment running the candidate scoring engine on profile data."
             ]
         }
     ]
@@ -353,18 +282,7 @@ def create_presentation():
     # =========================================================================
     # Slide 11: Thank You
     # =========================================================================
-    slide11 = prs.slides[10]
-    tb11 = slide11.shapes.add_textbox(Inches(1.0), Inches(5.8), Inches(11.333), Inches(1.0))
-    tf11 = tb11.text_frame
-    tf11.word_wrap = True
-    tf11.margin_left = tf11.margin_top = tf11.margin_right = tf11.margin_bottom = 0
-    p11 = tf11.paragraphs[0]
-    p11.text = "Team Name: vamsi krishna   |   Leader Name: vamshi krishna vemula(leader)"
-    p11.font.size = Pt(16)
-    p11.font.bold = True
-    p11.font.color.rgb = RGBColor(255, 255, 255) # Pure White
-    p11.font.name = 'Segoe UI'
-    p11.alignment = 1 # Center
+    # Left completely empty as designed by your template to avoid any cluttering / out-of-box text.
     
     prs.save(output_path)
     print(f"Successfully created native, clean PPTX at: {output_path}")
