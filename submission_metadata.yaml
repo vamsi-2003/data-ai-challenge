@@ -7,12 +7,12 @@ team_name: "vamsi krishna"  # Used in leaderboard and announcements
 
 primary_contact:
   name: "vamshi krishna vemula(leader)"
-  email: "vamshikrishna.vemula@gmail.com"   # Please update if needed
-  phone: "+91-9999999999"        # Please update if needed
+  email: "vamsi147krishna@gmail.com"   # Please update if needed
+  phone: "+91-6304197669"        # Please update if needed
 
 team_members:
   - name: "vamshi krishna vemula(leader)"
-    email: "vamshikrishna.vemula@gmail.com"
+    email: "vamsi147krishna@gmail.com"
     role: "Team Lead & ML Engineer"
 
 # ============================================================================
