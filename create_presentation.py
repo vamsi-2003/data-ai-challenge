@@ -7,7 +7,7 @@ from pptx.enum.shapes import MSO_SHAPE
 
 def create_presentation():
     pptx_path = r"C:\Users\22071\Downloads\Idea Submission Template _ Redrob.pptx"
-    output_path = "vamsi_krishna_approach_v5.pptx"
+    output_path = "vamsi_krishna_approach_v6.pptx"
     
     if not os.path.exists(pptx_path):
         print(f"Error: Template PPTX not found at {pptx_path}")
@@ -203,32 +203,41 @@ def create_presentation():
     populate_slide_questions(slide6.shapes[2], s6_sections)
 
     # =========================================================================
-    # Slide 7: System Architecture (Native Widescreen Flowchart, perfectly aligned)
+    # Slide 7: System Architecture (2-Row Flowchart, perfectly centered and bounded)
     # =========================================================================
     slide7 = prs.slides[6]
     
-    # Slide 7 Shape 1 is the title block: preserve it!
-    # Let's draw the flowchart shapes natively
-    box_w = Inches(1.7)
-    box_h = Inches(1.35)
-    start_x = Inches(0.9)
-    start_y = Inches(2.2)
-    gap = Inches(0.7)
+    # Text styles
+    tf7 = slide7.shapes[1].text_frame
+    tf7.clear()
+    p = tf7.paragraphs[0]
+    p.text = "System Architecture"
+    p.font.size = Pt(24)
+    p.font.bold = True
+    p.font.color.rgb = TEXT_COLOR_DARK
+    p.font.name = 'Segoe UI'
     
-    steps = [
-        ("Data Ingest", ["JSONL Streaming", "Active Date Scan", "JD Parsing"]),
-        ("Vetting Filters", ["Honeypots Filter", "IT Services Filter", "Unrelated Titles"]),
-        ("TF-IDF Engine", ["Vocabulary Index", "Cosine Similarity", "Baseline Offset"]),
-        ("Scoring & Scaling", ["Exp & Title weights", "Location Weight", "Reachability Mults"]),
-        ("Sort & Export", ["Tie-breaker Sorting", "Factual Reasoning", "CSV Serialization"])
+    box_w = Inches(2.2)
+    box_h = Inches(1.15)
+    
+    # ----------------------------------------------------
+    # Row 1: Steps 1, 2, 3
+    # ----------------------------------------------------
+    start_x_r1 = Inches(2.2)
+    y_r1 = Inches(2.0)
+    gap_r1 = Inches(1.2)
+    
+    row1_steps = [
+        ("1. Data Ingest", ["JSONL Stream Ingest", "Max Active Scan", "JD Parsing"]),
+        ("2. Vetting Filters", ["Honeypots Excluded", "Consulting Excluded", "Non-Tech Title Filter"]),
+        ("3. TF-IDF Engine", ["Vocabulary Fitting", "Cosine Similarity", "Baseline Offset"])
     ]
     
-    for idx, (title, details) in enumerate(steps):
-        x = start_x + idx * (box_w + gap)
-        y = start_y
+    for idx, (title, details) in enumerate(row1_steps):
+        x = start_x_r1 + idx * (box_w + gap_r1)
         
         # Rounded Rectangle Box
-        shape = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, box_w, box_h)
+        shape = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y_r1, box_w, box_h)
         shape.fill.solid()
         shape.fill.fore_color.rgb = RGBColor(248, 250, 252) # Light gray
         shape.line.color.rgb = TEXT_COLOR_DARK             # Slate 900 border
@@ -237,11 +246,11 @@ def create_presentation():
         
         tf = shape.text_frame
         tf.word_wrap = True
-        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = Inches(0.05)
+        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = Inches(0.04)
         
         p_t = tf.paragraphs[0]
         p_t.text = title
-        p_t.font.size = Pt(11)
+        p_t.font.size = Pt(10.5)
         p_t.font.bold = True
         p_t.font.color.rgb = TEXT_COLOR_DARK
         p_t.font.name = 'Segoe UI'
@@ -253,32 +262,92 @@ def create_presentation():
             p_d.font.size = Pt(8.5)
             p_d.font.color.rgb = TEXT_COLOR_BODY
             p_d.font.name = 'Segoe UI'
-            p_d.space_before = Pt(2)
+            p_d.space_before = Pt(1.5)
             
-        # Draw Arrow
-        if idx < len(steps) - 1:
-            arrow_x = x + box_w + Inches(0.08)
-            arrow_y = y + box_h / 2.0 - Inches(0.12)
-            arrow = slide7.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, arrow_x, arrow_y, gap - Inches(0.16), Inches(0.24))
+        # Draw Arrow (Right)
+        if idx < len(row1_steps) - 1:
+            arrow_x = x + box_w + Inches(0.1)
+            arrow_y = y_r1 + box_h / 2.0 - Inches(0.12)
+            arrow = slide7.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, arrow_x, arrow_y, gap_r1 - Inches(0.2), Inches(0.24))
             arrow.fill.solid()
             arrow.fill.fore_color.rgb = TEXT_COLOR_DARK # Slate 900
             arrow.line.fill.background()
             remove_shadow(arrow)
             
-    # Architecture highlights at bottom (properly placed)
-    desc_box = slide7.shapes.add_textbox(Inches(0.75), Inches(4.0), Inches(11.833), Inches(2.6))
+    # Draw Vertical Down Arrow connecting Row 1 to Row 2
+    # Positioned right below the 3rd box (x=9.0", end at 11.2", y=2.0")
+    arrow_v = slide7.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, Inches(10.0), Inches(3.22), Inches(0.24), Inches(0.28))
+    arrow_v.fill.solid()
+    arrow_v.fill.fore_color.rgb = TEXT_COLOR_DARK
+    arrow_v.line.fill.background()
+    remove_shadow(arrow_v)
+
+    # ----------------------------------------------------
+    # Row 2: Steps 4, 5
+    # ----------------------------------------------------
+    start_x_r2 = Inches(3.9)
+    y_r2 = Inches(3.65)
+    gap_r2 = Inches(1.2)
+    
+    row2_steps = [
+        ("4. Scoring & Scaling", ["Experience/Title Scores", "Location proximity check", "Reachability factors"]),
+        ("5. Sort & Export", ["Stable score sorting", "Factual explanations", "vamsi_krishna.csv output"])
+    ]
+    
+    for idx, (title, details) in enumerate(row2_steps):
+        x = start_x_r2 + idx * (box_w + gap_r2)
+        
+        # Rounded Rectangle Box
+        shape = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y_r2, box_w, box_h)
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = RGBColor(248, 250, 252) # Light gray
+        shape.line.color.rgb = TEXT_COLOR_DARK             # Slate 900 border
+        shape.line.width = Pt(1.5)
+        remove_shadow(shape)
+        
+        tf = shape.text_frame
+        tf.word_wrap = True
+        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = Inches(0.04)
+        
+        p_t = tf.paragraphs[0]
+        p_t.text = title
+        p_t.font.size = Pt(10.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = TEXT_COLOR_DARK
+        p_t.font.name = 'Segoe UI'
+        p_t.alignment = 1 # Center
+        
+        for det in details:
+            p_d = tf.add_paragraph()
+            p_d.text = "• " + det
+            p_d.font.size = Pt(8.5)
+            p_d.font.color.rgb = TEXT_COLOR_BODY
+            p_d.font.name = 'Segoe UI'
+            p_d.space_before = Pt(1.5)
+            
+        # Draw Arrow (Right)
+        if idx < len(row2_steps) - 1:
+            arrow_x = x + box_w + Inches(0.1)
+            arrow_y = y_r2 + box_h / 2.0 - Inches(0.12)
+            arrow = slide7.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, arrow_x, arrow_y, gap_r2 - Inches(0.2), Inches(0.24))
+            arrow.fill.solid()
+            arrow.fill.fore_color.rgb = TEXT_COLOR_DARK # Slate 900
+            arrow.line.fill.background()
+            remove_shadow(arrow)
+            
+    # Architecture highlights at bottom
+    desc_box = slide7.shapes.add_textbox(Inches(0.75), Inches(5.1), Inches(11.833), Inches(1.8))
     tf_desc = desc_box.text_frame
     tf_desc.word_wrap = True
     tf_desc.margin_left = tf_desc.margin_top = tf_desc.margin_right = tf_desc.margin_bottom = 0
     
     p = tf_desc.paragraphs[0]
     p.text = "System Architecture Highlights:"
-    p.font.size = Pt(15)
+    p.font.size = Pt(14)
     p.font.bold = True
     p.font.color.rgb = TEXT_COLOR_DARK
     p.font.name = 'Segoe UI'
-    p.space_after = Pt(4)
-    p.space_before = Pt(10)
+    p.space_after = Pt(2)
     
     highlights = [
         "Streaming Execution: Reads JSONL records line-by-line using a memory-efficient generator to process 100K profiles under 500MB RAM.",
@@ -291,7 +360,7 @@ def create_presentation():
         p2.font.size = Pt(11.5)
         p2.font.color.rgb = TEXT_COLOR_BODY
         p2.font.name = 'Segoe UI'
-        p2.space_before = Pt(5)
+        p2.space_before = Pt(4)
 
     # =========================================================================
     # Slide 8: Results & Performance
