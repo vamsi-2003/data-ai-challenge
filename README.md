@@ -8,7 +8,7 @@ Our system ranks candidates based on a hybrid matching system of semantic TF-IDF
 
 ```text
 ├── rank.py                       # Core ranking and scoring script
-├── team_antigravity.csv          # Generated ranked output of top 100 candidates
+├── vamsi_krishna.csv          # Generated ranked output of top 100 candidates
 ├── submission_metadata.yaml      # Submission metadata
 ├── README.md                     # Documentation and setup (this file)
 ├── validate_submission.py        # Provided validator script
@@ -31,7 +31,7 @@ pip install numpy pandas scikit-learn pyyaml python-docx
 To run the ranker and generate the ranked list, execute the following command from the repository root:
 
 ```bash
-python rank.py --candidates ./candidates.jsonl --out ./team_antigravity.csv
+python rank.py --candidates ./candidates.jsonl --out ./vamsi_krishna.csv
 ```
 
 ### Validation
@@ -39,7 +39,7 @@ python rank.py --candidates ./candidates.jsonl --out ./team_antigravity.csv
 To validate the format of the generated CSV file, run:
 
 ```bash
-python validate_submission.py team_antigravity.csv
+python validate_submission.py vamsi_krishna.csv
 ```
 
 ## Methodology

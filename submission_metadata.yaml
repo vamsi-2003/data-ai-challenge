@@ -3,17 +3,17 @@
 # ============================================================================
 # Team identity
 # ============================================================================
-team_name: "team_antigravity"  # Used in leaderboard and announcements
+team_name: "vamsi krishna"  # Used in leaderboard and announcements
 
 primary_contact:
-  name: "Antigravity Agent"
-  email: "antigravity@deepmind.com"   # Used for all organizer communication
-  phone: "+91-9999999999"        # Used for top-50 / top-10 outreach
+  name: "vamshi krishna vemula(leader)"
+  email: "vamshikrishna.vemula@gmail.com"   # Please update if needed
+  phone: "+91-9999999999"        # Please update if needed
 
 team_members:
-  - name: "Antigravity Agent"
-    email: "antigravity@deepmind.com"
-    role: "ML Engineer"
+  - name: "vamshi krishna vemula(leader)"
+    email: "vamshikrishna.vemula@gmail.com"
+    role: "Team Lead & ML Engineer"
 
 # ============================================================================
 # Code and reproducibility
@@ -26,7 +26,7 @@ sandbox_link: "https://huggingface.co/spaces/vamsi-2003/data-ai-challenge"
 # Required. A working hosted environment where the ranker can be run on a small
 # candidate sample.
 
-reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./team_antigravity.csv"
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./vamsi_krishna.csv"
 # The single command that produces the submission CSV.
 # Should run end-to-end within 5 minutes on CPU with 16GB RAM and no network.
 
