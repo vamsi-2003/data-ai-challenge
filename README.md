@@ -22,7 +22,7 @@ Our system ranks candidates based on a hybrid matching system of semantic TF-IDF
 ## Hugging Face Space Sandbox (Live Demo)
 
 A live interactive sandbox running this candidate scoring engine is hosted on Hugging Face Spaces:
-👉 **[Hugging Face Space Sandbox](https://huggingface.co/spaces/vamsi147/data-ai-challenge)**
+👉 **[Hugging Face Space Sandbox](https://huggingface.co/spaces/vamsi-2003/data-ai-challenge)**
 
 ### Features of the Sandbox:
 * **Interactive UI**: Upload your own candidates JSON/JSONL file or run immediately using the preloaded `sample_candidates.json` dataset.
