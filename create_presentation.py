@@ -14,12 +14,20 @@ def create_presentation():
     prs.slide_height = Inches(7.5)
     
     # Colors
-    TEXT_COLOR_DARK = RGBColor(15, 23, 42)     # Slate 900
-    TEXT_COLOR_BODY = RGBColor(51, 65, 85)     # Slate 700
-    TEXT_COLOR_MUTED = RGBColor(100, 116, 139) # Slate 500
-    ACCENT_COLOR = RGBColor(13, 148, 136)      # Teal 600
-    BORDER_COLOR = RGBColor(226, 232, 240)     # Slate 200
+    TEXT_COLOR_DARK = RGBColor(15, 23, 42)     # Slate 900 (Dark Slate)
+    TEXT_COLOR_BODY = RGBColor(51, 65, 85)     # Slate 700 (Body text)
+    TEXT_COLOR_MUTED = RGBColor(100, 116, 139) # Slate 500 (Muted)
     
+    def remove_shadow(shape):
+        try:
+            spPr = shape.element.spPr
+            # Remove drop shadow effects inside the shape XML to ensure it's flat
+            effectLst = spPr.find('{http://schemas.openxmlformats.org/drawingml/2006/main}effectLst')
+            if effectLst is not None:
+                spPr.remove(effectLst)
+        except:
+            pass
+
     def apply_bg(slide, slide_num):
         # Insert extracted reference slide image as background
         bg_path = f"template_images/slide_{slide_num}.png"
@@ -27,69 +35,80 @@ def create_presentation():
         return slide
         
     def apply_content_mask(slide):
-        # Add a white shape mask to cover placeholder bullets/questions in the reference PDF
-        # We start at y=2.0 (below header and title) and stop at y=6.9 (above footer)
-        mask = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(2.0), Inches(11.933), Inches(4.9))
+        # Add a shadowless, borderless white shape mask to cover placeholder bullets/questions in the reference PDF
+        # We start at y=1.2 (below header logo) and stop at y=6.9 (above footer line)
+        mask = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(1.2), Inches(11.933), Inches(5.7))
         mask.fill.solid()
         mask.fill.fore_color.rgb = RGBColor(255, 255, 255) # Pure White
-        mask.line.color.rgb = RGBColor(255, 255, 255)      # Pure White border
+        mask.line.fill.background()      # Transparent / background matching border
+        remove_shadow(mask)
         return slide
 
-    def add_content_bullets(slide, content_dict):
-        # Adds content in two columns or single column
+    def add_slide_header(slide, title_text):
+        # Write slide header natively in clean font
+        tb = slide.shapes.add_textbox(Inches(0.75), Inches(1.3), Inches(11.833), Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+        p = tf.paragraphs[0]
+        p.text = title_text
+        p.font.size = Pt(24)
+        p.font.bold = True
+        p.font.color.rgb = TEXT_COLOR_DARK
+        p.font.name = 'Segoe UI'
+
+    def populate_section(tf, sec, is_first=True):
+        # Question text (Sub-header)
+        p_q = tf.paragraphs[0] if is_first else tf.add_paragraph()
+        p_q.text = sec['question']
+        p_q.font.size = Pt(14)
+        p_q.font.bold = True
+        p_q.font.color.rgb = TEXT_COLOR_DARK
+        p_q.font.name = 'Segoe UI'
+        p_q.space_after = Pt(6)
+        if not is_first:
+            p_q.space_before = Pt(14)
+            
+        # Bullet points (Answers)
+        for bullet in sec['bullets']:
+            p_b = tf.add_paragraph()
+            p_b.text = "•  " + bullet
+            p_b.font.size = Pt(11.5)
+            p_b.font.color.rgb = TEXT_COLOR_BODY
+            p_b.font.name = 'Segoe UI'
+            p_b.space_after = Pt(4)
+
+    def add_slide_content(slide, title_text, sections):
         apply_content_mask(slide)
+        add_slide_header(slide, title_text)
         
-        # Left column textbox
-        txBox_l = slide.shapes.add_textbox(Inches(0.75), Inches(2.1), Inches(5.6), Inches(4.6))
-        tf_l = txBox_l.text_frame
-        tf_l.word_wrap = True
-        tf_l.margin_left = tf_l.margin_top = tf_l.margin_right = tf_l.margin_bottom = 0
-        
-        # Right column textbox
-        txBox_r = slide.shapes.add_textbox(Inches(6.98), Inches(2.1), Inches(5.6), Inches(4.6))
-        tf_r = txBox_r.text_frame
-        tf_r.word_wrap = True
-        tf_r.margin_left = tf_r.margin_top = tf_r.margin_right = tf_r.margin_bottom = 0
-        
-        # Populate Left
-        left_data = content_dict.get('left', [])
-        for i, item in enumerate(left_data):
-            p = tf_l.add_paragraph() if i > 0 else tf_l.paragraphs[0]
-            p.text = "• " + item['header']
-            p.font.size = Pt(16)
-            p.font.bold = True
-            p.font.color.rgb = TEXT_COLOR_DARK
-            p.font.name = 'Segoe UI'
-            p.space_after = Pt(4)
-            p.space_before = Pt(10) if i > 0 else Pt(0)
-            
-            for sub in item.get('bullets', []):
-                p_sub = tf_l.add_paragraph()
-                p_sub.text = "   " + sub
-                p_sub.font.size = Pt(12)
-                p_sub.font.color.rgb = TEXT_COLOR_BODY
-                p_sub.font.name = 'Segoe UI'
-                p_sub.space_after = Pt(2)
-                
-        # Populate Right
-        right_data = content_dict.get('right', [])
-        for i, item in enumerate(right_data):
-            p = tf_r.add_paragraph() if i > 0 else tf_r.paragraphs[0]
-            p.text = "• " + item['header']
-            p.font.size = Pt(16)
-            p.font.bold = True
-            p.font.color.rgb = TEXT_COLOR_DARK
-            p.font.name = 'Segoe UI'
-            p.space_after = Pt(4)
-            p.space_before = Pt(10) if i > 0 else Pt(0)
-            
-            for sub in item.get('bullets', []):
-                p_sub = tf_r.add_paragraph()
-                p_sub.text = "   " + sub
-                p_sub.font.size = Pt(12)
-                p_sub.font.color.rgb = TEXT_COLOR_BODY
-                p_sub.font.name = 'Segoe UI'
-                p_sub.space_after = Pt(2)
+        num_sections = len(sections)
+        if num_sections == 1:
+            txBox = slide.shapes.add_textbox(Inches(0.75), Inches(2.0), Inches(11.833), Inches(4.8))
+            tf = txBox.text_frame
+            tf.word_wrap = True
+            tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+            populate_section(tf, sections[0], is_first=True)
+        elif num_sections == 2:
+            col_w = Inches(5.6)
+            gap = Inches(0.6)
+            for idx, sec in enumerate(sections):
+                x = Inches(0.75) + idx * (col_w + gap)
+                txBox = slide.shapes.add_textbox(x, Inches(2.0), col_w, Inches(4.8))
+                tf = txBox.text_frame
+                tf.word_wrap = True
+                tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+                populate_section(tf, sec, is_first=True)
+        elif num_sections == 3:
+            col_w = Inches(3.6)
+            gap = Inches(0.5)
+            for idx, sec in enumerate(sections):
+                x = Inches(0.75) + idx * (col_w + gap)
+                txBox = slide.shapes.add_textbox(x, Inches(2.0), col_w, Inches(4.8))
+                tf = txBox.text_frame
+                tf.word_wrap = True
+                tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+                populate_section(tf, sec, is_first=True)
 
     # =========================================================================
     # Slide 1: Title Slide
@@ -97,13 +116,14 @@ def create_presentation():
     slide1 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide1, 1)
     
-    # Mask out reference labels at bottom
+    # Mask out the template's placeholder label lines at the bottom using a shadowless white rectangle
     mask1 = slide1.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(4.0), Inches(11.933), Inches(2.9))
     mask1.fill.solid()
     mask1.fill.fore_color.rgb = RGBColor(255, 255, 255)
-    mask1.line.color.rgb = RGBColor(255, 255, 255)
+    mask1.line.fill.background()
+    remove_shadow(mask1)
     
-    # Overwrite custom metadata text box
+    # Place custom team details text box
     tb = slide1.shapes.add_textbox(Inches(0.75), Inches(4.2), Inches(11.833), Inches(2.7))
     tf = tb.text_frame
     tf.word_wrap = True
@@ -153,36 +173,25 @@ def create_presentation():
     slide2 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide2, 2)
     
-    s2_data = {
-        'left': [
-            {
-                'header': "Proposed Solution: Hybrid Scorer",
-                'bullets': [
-                    "Blends semantic text similarity (TF-IDF cosine similarity) with a multi-criteria structured profile scorer.",
-                    "Builds unified candidate document strings from Headlines, Summaries, Job Histories, and Skills.",
-                    "Optimized for zero-network, local execution within strict CPU and memory bounds."
-                ]
-            },
-            {
-                'header': "Zero-Honeypot Enforcement Engine",
-                'bullets': [
-                    "Applies hard heuristics to catch fake profiles claiming start dates at Krutrim or Sarvam AI prior to their actual 2023 founding.",
-                    "Catches zero-duration skills where candidates claim 'expert' status but specify exactly 0 months of duration."
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Key Differentiators",
-                'bullets': [
-                    "Operational Feasibility: Incorporates notice period (favoring <=30 days) and location compatibilities (Pune/Noida focus).",
-                    "Behavioral Reachability Model: Adjusts scores using actual activity, response rates, and interview completion flags.",
-                    "No Hallucinations: Uses factual template compilation for candidate reasonings instead of generative LLMs."
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide2, s2_data)
+    s2_sections = [
+        {
+            'question': "What is your proposed solution?",
+            'bullets': [
+                "An offline hybrid scoring pipeline that integrates dense semantic text similarity with a multi-criteria structured profile score.",
+                "Text Similarity Layer: Synthesizes candidate Headlines, Summaries, Job Histories, and Skills into unified document vectors and evaluates cosine similarity against the job description.",
+                "Structured Layer: Evaluates experience years compatibility, title keyword hierarchies, notice period, location proximity, and candidate engagement."
+            ]
+        },
+        {
+            'question': "What differentiates your approach from traditional candidate matching systems?",
+            'bullets': [
+                "Keyword-Stuffing Resistance: Evaluates skills strictly by weighting proficiency (expert vs beginner) and duration (capped at 36 months) rather than simple text counts.",
+                "Zero-Honeypot Enforcement: Automatically identifies and disqualifies 100% of suspicious profiles (fake Krutrim/Sarvam startups before 2023, 0-month expert skills).",
+                "Operational Realism: Incorporates availability (notice period <=30 days) and location proximity (Noida/Pune local) to maximize hiring probability."
+            ]
+        }
+    ]
+    add_slide_content(slide2, "Solution Overview", s2_sections)
 
     # =========================================================================
     # Slide 3: JD Understanding & Candidate Evaluation
@@ -190,31 +199,27 @@ def create_presentation():
     slide3 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide3, 3)
     
-    s3_data = {
-        'left': [
-            {
-                'header': "Core Job Description Requirements",
-                'bullets': [
-                    "Experience Band: 5-9 years of total experience preferred.",
-                    "Technical Depth: Sentence-transformers, embeddings, and vector databases (Pinecone, Qdrant, Milvus, Weaviate, FAISS).",
-                    "Rigorous Evaluation: Production knowledge of ranking metrics (NDCG, MAP, MRR) and online A/B testing.",
-                    "Background Filter: Disqualifies candidates whose entire careers are solely in services/consulting firms (TCS, Wipro, Infosys)."
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Signal Weights & Importance",
-                'bullets': [
-                    "Experience Years (25% Weight): Scored at 1.0 for preferred 5-9 years, with linear decay below 5 and slow decay above 9.",
-                    "Role Alignment (25% Weight): Scours headlines and current/past titles for AI/ML keywords vs backend/unrelated titles.",
-                    "Skill Match (50% Weight): Core skills weighted strictly by proficiency (expert=1.0) and duration (capped at 36 months).",
-                    "Multipliers: Location (Noida/Pune local = 1.0, relocations = 0.95), Availability (<=30d = 1.0, <=90d = 0.8), Engagement (Activity recency)."
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide3, s3_data)
+    s3_sections = [
+        {
+            'question': "What are the key requirements extracted from the JD?",
+            'bullets': [
+                "Experience Level: Preferred 5-9 years of total experience band.",
+                "Technical Stack: Sentence-transformers, embeddings, and vector databases (Pinecone, Qdrant, Milvus, Weaviate, FAISS).",
+                "Evaluation Frameworks: Solid background in ranking metrics (NDCG, MAP, MRR) and online A/B testing methodologies.",
+                "Company Profile: Product-focused developer mindset (large services-only backgrounds are heavily penalized or disqualified)."
+            ]
+        },
+        {
+            'question': "Which candidate signals are most important? / How do we evaluate fit beyond keyword matching?",
+            'bullets': [
+                "Experience Years (25% Weight): Scored high for 5-9 years; linear decay below 5 and slow decay above 9 to prioritize senior fitment.",
+                "Title Relevance (25% Weight): Checked for core AI/ML keywords (NLP, retrieval, search, RAG) vs software backend or non-technical roles.",
+                "Skill Depth (50% Weight): Weighted by proficiency (expert=1.0) and duration (capped at 36 months).",
+                "Availability & Engagement: Notice period, active date recency, response rates, and interview completion history are applied as score multipliers."
+            ]
+        }
+    ]
+    add_slide_content(slide3, "JD Understanding & Candidate Evaluation", s3_sections)
 
     # =========================================================================
     # Slide 4: Ranking Methodology
@@ -222,38 +227,30 @@ def create_presentation():
     slide4 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide4, 4)
     
-    s4_data = {
-        'left': [
-            {
-                'header': "Vectorization & Cosine Similarity",
-                'bullets': [
-                    "Fits a local TfidfVectorizer on all 100K candidates with a vocabulary cap of 15,000 features.",
-                    "Computes the cosine similarity of candidate document vectors against the job description text.",
-                    "Offsets TF-IDF score by +0.05 to allow structured criteria to rank candidates even with lower text overlap."
-                ]
-            },
-            {
-                'header': "Hard Vetting & Exclusions",
-                'bullets': [
-                    "Honeypot Filter: Disqualifies all fake candidate records (score set to 0.0).",
-                    "Consulting Excluder: Drops candidates whose entire careers lie in consulting (TCS/Infosys/Wipro).",
-                    "Current Role Check: Rejects candidates with unrelated current roles."
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Mathematical Signal Fusion",
-                'bullets': [
-                    "Calculates Score = (Sim + 0.05) x Structured_Score x Location_Mult x Notice_Mult x Behavior_Mult.",
-                    "Location Multiplier: Noida/Pune preferred (1.0), Tier-1 India relocations (0.95), other India (0.7), international (0.1).",
-                    "Availability Multiplier: <=30 days notice (1.0), <=90 days (0.8), >90 days (0.5).",
-                    "Behavioral Multiplier: inactivity_decay x open_to_work x response_rate x response_time x interview_completion."
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide4, s4_data)
+    s4_sections = [
+        {
+            'question': "How does your system retrieve, score, and rank candidates?",
+            'bullets': [
+                "Executes a streaming, multi-stage CPU pipeline: Streaming ingest, Hard pre-filtering, TF-IDF vector similarity, Structured scoring, Multiplier scaling, and Deterministic tie-breaking."
+            ]
+        },
+        {
+            'question': "What models, algorithms, or heuristics are used?",
+            'bullets': [
+                "Models TF-IDF (15,000 vocabulary limit) and Cosine Similarity to evaluate text alignment.",
+                "Uses a custom experience scoring curve: y = years / 5.0 if <5, 1.0 if 5-9, and 1.0 - (years - 9) * 0.1 if >9.",
+                "Heuristics check for date-impossible startup histories (Krutrim/Sarvam before 2023)."
+            ]
+        },
+        {
+            'question': "How are multiple candidate signals combined into a final ranking?",
+            'bullets': [
+                "Fused via multiplicative scaling: Final = (TFIDF + 0.05) x Structured x Loc_Mult x Notice_Mult x Behavior_Mult.",
+                "Ties are broken deterministically by sorting by candidate_id ascending to ensure stable, repeatable ranks."
+            ]
+        }
+    ]
+    add_slide_content(slide4, "Ranking Methodology", s4_sections)
 
     # =========================================================================
     # Slide 5: Explainability & Data Validation
@@ -261,37 +258,31 @@ def create_presentation():
     slide5 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide5, 5)
     
-    s5_data = {
-        'left': [
-            {
-                'header': "Deterministic Factual Explanations",
-                'bullets': [
-                    "Explanations are generated programmatically using a compiler with four distinct grammatical templates.",
-                    "Injects actual profile variables (years of experience, current title, key skills, location, notice period, response rate).",
-                    "Factual Guarantee: Completely eliminates hallucinations, ensuring every generated reasoning is backed by database properties."
-                ]
-            },
-            {
-                'header': "Dynamic Concern Flags",
-                'bullets': [
-                    "Automatically appends warning flags to the reasoning for candidates who have high notice periods (>60 days).",
-                    "Notes if experience falls slightly outside the preferred 5-9 years band, providing recruiters full visibility."
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Data Validation & Suspicious Profile Handling",
-                'bullets': [
-                    "Krutrim/Sarvam Founders: Excludes profiles claiming start dates before the startups' actual 2023 registration.",
-                    "Zero-month Experts: Identifies keyword-stuffers claiming 'expert' skills but recording 0 months of duration.",
-                    "Deterministic Tie-Breaker: Sorts score ties by candidate_id ascending to ensure strict schema validation compatibility.",
-                    "Failsafe Format Check: Output runs through validate_submission.py to guarantee monotonicity and 100 rows."
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide5, s5_data)
+    s5_sections = [
+        {
+            'question': "How are ranking decisions explained?",
+            'bullets': [
+                "Explained using a rule-based template compiler that generates a 1-2 sentence description detailing experience years, titles, skills, location, and notice period.",
+                "Appends specific warning flags (e.g. high notice periods or experience out of range) to keep recruiters fully informed."
+            ]
+        },
+        {
+            'question': "How do you prevent hallucinations or unsupported justifications?",
+            'bullets': [
+                "Eliminates generative LLM calls at ranking runtime, ensuring zero risk of hallucination.",
+                "Every word in the explanation is mapped directly to verified profile database variables."
+            ]
+        },
+        {
+            'question': "How does your solution handle inconsistent or suspicious profiles?",
+            'bullets': [
+                "Flagged Start Dates: Disqualifies candidates claiming experience at Krutrim or Sarvam AI prior to their actual 2023 founding.",
+                "Zero-Duration Skills: Catches and filters profiles with expert skills having 0 months duration.",
+                "Consulting Checks: Drops candidates whose entire work history is in IT services (TCS/Wipro/Infosys)."
+            ]
+        }
+    ]
+    add_slide_content(slide5, "Explainability & Data Validation", s5_sections)
 
     # =========================================================================
     # Slide 6: End-to-End Workflow
@@ -299,44 +290,22 @@ def create_presentation():
     slide6 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide6, 6)
     
-    s6_data = {
-        'left': [
-            {
-                'header': "Data Ingest & Parsing",
-                'bullets': [
-                    "Ingests candidates.jsonl line-by-line using a memory-friendly generator.",
-                    "Loads and parses job_description.md to extract search keywords.",
-                    "First-pass scan detects the latest platform activity date (2026-05-27) for relative inactivity math."
-                ]
-            },
-            {
-                'header': "Pre-filtering & Text Indexing",
-                'bullets': [
-                    "Instantly excludes 94 honeypot candidates and non-product profiles.",
-                    "Builds combined profile text and runs scikit-learn TF-IDF fit-transform on the remaining candidates."
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Structured Scoring & Signal Fusion",
-                'bullets': [
-                    "Calculates structured experience, title, and skill duration scores.",
-                    "Applies location, availability, and behavioral multipliers to scale the base score.",
-                    "Sorts candidates descending by final score, breaking ties by candidate_id ascending."
-                ]
-            },
-            {
-                'header': "Reasoning Compilation & Output",
-                'bullets': [
-                    "Compiles reasoning strings for the top 100 candidates based on actual metrics.",
-                    "Writes output to vamsi_krishna.csv.",
-                    "Runs format validation checks."
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide6, s6_data)
+    s6_sections = [
+        {
+            'question': "What is the complete workflow from JD input to ranked candidate output?",
+            'bullets': [
+                "1. Load Data: Read candidates.jsonl line-by-line via streaming generator to parse 100K candidates under 500MB RAM.",
+                "2. Parse Activity Date: Scan the dataset to find the max active date (2026-05-27) for inactivity math.",
+                "3. Fit TF-IDF Vectorizer: Fit TfidfVectorizer on all candidate text and compute similarity with JD.",
+                "4. Exclude Honeypots & Disqualified: Run hard filters on dates, zero-duration expert skills, and consulting.",
+                "5. Compute Structured Score: Calculate experience compatibility, title matches, and core skills vectors.",
+                "6. Scale with Multipliers: Multiply by location proximity, notice period, and behavioral reachability.",
+                "7. Sort & Rank: Sort descending by score and ascending by ID, selecting the top 100.",
+                "8. Generate Rationale & Save: Compile factual reasoning strings and write output to vamsi_krishna.csv."
+            ]
+        }
+    ]
+    add_slide_content(slide6, "End-to-End Workflow", s6_sections)
 
     # =========================================================================
     # Slide 7: System Architecture
@@ -344,6 +313,7 @@ def create_presentation():
     slide7 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide7, 7)
     apply_content_mask(slide7)
+    add_slide_header(slide7, "System Architecture")
     
     # Draw Architecture flow chart using native shapes
     box_w = Inches(1.85)
@@ -368,8 +338,9 @@ def create_presentation():
         shape = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, box_w, box_h)
         shape.fill.solid()
         shape.fill.fore_color.rgb = RGBColor(248, 250, 252) # Slate 50 (Very light gray)
-        shape.line.color.rgb = RGBColor(15, 23, 42)        # Slate 900 border
+        shape.line.color.rgb = TEXT_COLOR_DARK             # Slate 900 border
         shape.line.width = Pt(1.5)
+        remove_shadow(shape)
         
         tf = shape.text_frame
         tf.word_wrap = True
@@ -397,8 +368,9 @@ def create_presentation():
             arrow_y = y + box_h / 2.0 - Inches(0.12)
             arrow = slide7.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, arrow_x, arrow_y, gap - Inches(0.1), Inches(0.24))
             arrow.fill.solid()
-            arrow.fill.fore_color.rgb = RGBColor(15, 23, 42) # Slate 900
+            arrow.fill.fore_color.rgb = TEXT_COLOR_DARK # Slate 900
             arrow.line.fill.background()
+            remove_shadow(arrow)
             
     # Architecture highlights at bottom
     desc_box = slide7.shapes.add_textbox(Inches(0.75), Inches(4.2), Inches(11.833), Inches(2.4))
@@ -433,31 +405,25 @@ def create_presentation():
     slide8 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide8, 8)
     
-    s8_data = {
-        'left': [
-            {
-                'header': "Execution Benchmarks",
-                'bullets': [
-                    "Total Runtime: 117.07 seconds end-to-end (well within the 5-minute constraint).",
-                    "Memory Footprint: Under 500 MB RAM peak (limit is 16 GB).",
-                    "Honeypot Removal: 100% of the 94 identified fake candidates were caught and excluded (Honeypot rate = 0% in top 100).",
-                    "Format Verification: 100% Validated via validate_submission.py."
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Ranking Insights & Quality",
-                'bullets': [
-                    "Top Match (CAND_0081846): 6.7 years of experience, current title matches Senior AI Engineer, expertise in Elasticsearch & Vector Search, Noida/Pune compatible.",
-                    "Rank 2 (CAND_0018499): 7.2 years, expert in Weaviate & Pinecone, 15-day notice period.",
-                    "Rank 3 (CAND_0039754): 16.2 years, expert in Fine-tuning LLMs, Qdrant, OpenSearch, noted experience seniority concern.",
-                    "Rank 5 (CAND_0099806): 4.6 years, expert in RAG & FAISS, noted experience slightly below range."
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide8, s8_data)
+    s8_sections = [
+        {
+            'question': "What results or insights demonstrate ranking quality?",
+            'bullets': [
+                "0% Honeypots in Top 100: Successfully caught and removed all 94 fake candidates.",
+                "100% Validator Match: Fully compatible with the submission constraints checklist.",
+                "Senior AI Engineer Fits: Rank 1 Candidate (CAND_0081846) holds 6.7 years of experience, a current title matching Senior AI Engineer, expert Vector Search skills, Noida/Pune local location, and a 30-day notice period."
+            ]
+        },
+        {
+            'question': "How does your solution meet the challenge's runtime and compute constraints?",
+            'bullets': [
+                "Execution Time: 117.07 seconds (well under the 5-minute/300-second budget).",
+                "Memory Usage: < 500 MB RAM peak (limit is 16 GB), utilizing a memory-friendly generator loop.",
+                "Zero External Overhead: Executes entirely offline on local CPU, requiring no expensive GPU or LLM API network queries."
+            ]
+        }
+    ]
+    add_slide_content(slide8, "Results & Performance", s8_sections)
 
     # =========================================================================
     # Slide 9: Technologies Used
@@ -465,29 +431,18 @@ def create_presentation():
     slide9 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide9, 9)
     
-    s9_data = {
-        'left': [
-            {
-                'header': "Codebase & Core Stack",
-                'bullets': [
-                    "Python: Standard language for pipeline scripting, streaming generator pipelines, and YAML parsing.",
-                    "Scikit-learn: Utilized TfidfVectorizer for vector representation and cosine_similarity matrix operations.",
-                    "NumPy & Pandas: Used for vectorized candidate matrix sorting, fast scoring calculations, and CSV operations."
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Design Rationale",
-                'bullets': [
-                    "Zero-GPU requirement: Opted for TF-IDF + Cosine similarity over Transformer embeddings to run local scoring within the tight CPU timeline.",
-                    "Streaming/Iterative parsing: Reads JSONL line-by-line to stay well within the 16 GB memory limit.",
-                    "Rule-based compilation: Uses deterministic template logic for generating explanations, guaranteeing speed, zero API cost, and zero hallucinations."
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide9, s9_data)
+    s9_sections = [
+        {
+            'question': "What technologies, frameworks, and tools were used and why were they selected for this solution?",
+            'bullets': [
+                "Python: Chosen for robust scripting, stream parsing, and data cleaning.",
+                "Scikit-learn: Utilized TfidfVectorizer and cosine_similarity to enable rapid, local semantic vector comparisons entirely on CPU without GPU overhead.",
+                "NumPy & Pandas: Used for vectorized, fast mathematical matrix score scaling and deterministic candidate sorting.",
+                "PyMuPDF (fitz) & python-pptx: Enabled high-resolution template background extraction and automated slide compiling."
+            ]
+        }
+    ]
+    add_slide_content(slide9, "Technologies Used", s9_sections)
 
     # =========================================================================
     # Slide 10: Submission Assets
@@ -495,28 +450,19 @@ def create_presentation():
     slide10 = prs.slides.add_slide(prs.slide_layouts[6])
     apply_bg(slide10, 10)
     
-    s10_data = {
-        'left': [
-            {
-                'header': "Completed Deliverables",
-                'bullets': [
-                    "GitHub Repository: https://github.com/vamsi-2003/data-ai-challenge",
-                    "HuggingFace Space Demo Link: https://huggingface.co/spaces/vamsi-2003/data-ai-challenge",
-                    "Ranked Output (CSV): vamsi_krishna.csv (contains the top 100 candidates with custom rationales)"
-                ]
-            }
-        ],
-        'right': [
-            {
-                'header': "Submission Configuration",
-                'bullets': [
-                    "Submission Metadata: submission_metadata.yaml (containing team name, leader name, and methodology)",
-                    "Approach Presentation: vamsi_krishna_approach.pptx (this generated slide deck, ready for PDF export)"
-                ]
-            }
-        ]
-    }
-    add_content_bullets(slide10, s10_data)
+    s10_sections = [
+        {
+            'question': "What assets are complete and available in the workspace?",
+            'bullets': [
+                "GitHub Repository: https://github.com/vamsi-2003/data-ai-challenge (contains full codebase, CSV, and PPTX).",
+                "HuggingFace Space Demo Link: https://huggingface.co/spaces/vamsi-2003/data-ai-challenge",
+                "Ranked Output (CSV): vamsi_krishna.csv (contains the top 100 candidates with custom rationales)",
+                "Submission Metadata: submission_metadata.yaml (containing team name, leader name, and methodology)",
+                "Approach Presentation: vamsi_krishna_approach_v2.pptx (this generated slide deck, ready for PDF export)"
+            ]
+        }
+    ]
+    add_slide_content(slide10, "Submission Assets", s10_sections)
 
     # =========================================================================
     # Slide 11: Thank You
@@ -537,8 +483,8 @@ def create_presentation():
     p11.font.name = 'Segoe UI'
     p11.alignment = 1 # Center
     
-    prs.save('vamsi_krishna_approach_v2.pptx')
-    print("Successfully created template-identical widescreen vamsi_krishna_approach_v2.pptx!")
+    prs.save('vamsi_krishna_approach_v3.pptx')
+    print("Successfully created template-identical widescreen vamsi_krishna_approach_v3.pptx!")
 
 if __name__ == '__main__':
     create_presentation()
