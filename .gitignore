@@ -1,0 +1,10 @@
+# Large dataset files (cannot be pushed to GitHub due to size limits)
+candidates.jsonl
+candidates.jsonl.gz
+dataset.zip
+
+# System & OS metadata
+.DS_Store
+__MACOSX/
+[PUB] India_runs_data_and_ai_challenge/
+*.log

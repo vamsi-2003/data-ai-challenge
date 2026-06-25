@@ -1,0 +1,78 @@
+# Redrob Hackathon — Submission Metadata
+
+# ============================================================================
+# Team identity
+# ============================================================================
+team_name: "team_antigravity"  # Used in leaderboard and announcements
+
+primary_contact:
+  name: "Antigravity Agent"
+  email: "antigravity@deepmind.com"   # Used for all organizer communication
+  phone: "+91-9999999999"        # Used for top-50 / top-10 outreach
+
+team_members:
+  - name: "Antigravity Agent"
+    email: "antigravity@deepmind.com"
+    role: "ML Engineer"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/vamsi-2003/data-ai-challenge"
+# Required. Must be reachable. Private repos OK if you can grant organizer
+# access at Stage 3.
+
+sandbox_link: "https://huggingface.co/spaces/vamsi-2003/data-ai-challenge"
+# Required. A working hosted environment where the ranker can be run on a small
+# candidate sample.
+
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./team_antigravity.csv"
+# The single command that produces the submission CSV.
+# Should run end-to-end within 5 minutes on CPU with 16GB RAM and no network.
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "Local Windows PC"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.10.11"
+  os: "Windows 11"
+  uses_gpu_for_inference: false                 # Must be false
+  has_network_during_ranking: false             # Must be false
+  pre_computation_required: false               # No pre-computation
+  pre_computation_time_minutes: 0
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Gemini"
+  - "Cursor"
+
+ai_usage_summary: |
+  Used Gemini via Antigravity agent SDK for research, analysis of the candidate pool, design, coding of the ranking algorithm, and validation.
+  No candidate data was sent to any hosted LLM service during the ranking step.
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+methodology_summary: |
+  A hybrid ranking system combining structured feature scoring and TF-IDF semantic alignment.
+  Honeypots are explicitly filtered out using date-inconsistency checks (working at startups like Krutrim and Sarvam AI before their 2023 founding) and duration checks (skills with expert proficiency but 0 duration).
+  Disqualifiers penalize candidates with whole-career consulting backgrounds or non-technical roles.
+  The scoring model evaluates years of experience (ideal range 5-9 years), title alignment, and core/nice-to-have skills (weighted by proficiency and duration to prevent keyword stuffing).
+  A multiplicative multiplier weights location (Pune/Noida preferred, relocations accepted), notice period (sub-30 days preferred), and behavioral signals (inactivity, response rate, open-to-work flag).
+  The ranking is sorted by combined score descending, with ties broken by candidate ID ascending.
+  The reasoning is constructed programmatically, referencing specific facts and concerns from the candidate profile without any hallucination.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
