@@ -1,185 +1,87 @@
 #!/usr/bin/env python3
-import collections 
-import collections.abc
+import os
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 
 def create_presentation():
-    prs = Presentation()
+    pptx_path = r"C:\Users\22071\Downloads\Idea Submission Template _ Redrob.pptx"
+    output_path = "vamsi_krishna_approach_final.pptx"
     
-    # Set to 16:9 widescreen to match template
-    prs.slide_width = Inches(13.333)
-    prs.slide_height = Inches(7.5)
+    if not os.path.exists(pptx_path):
+        print(f"Error: Template PPTX not found at {pptx_path}")
+        return
+        
+    prs = Presentation(pptx_path)
+    print("Successfully opened native PPTX template!")
     
     # Colors
-    TEXT_COLOR_DARK = RGBColor(15, 23, 42)     # Slate 900 (Dark Slate)
-    TEXT_COLOR_BODY = RGBColor(51, 65, 85)     # Slate 700 (Body text)
-    TEXT_COLOR_MUTED = RGBColor(100, 116, 139) # Slate 500 (Muted)
+    TEXT_COLOR_DARK = RGBColor(15, 23, 42)     # Slate 900
+    TEXT_COLOR_BODY = RGBColor(51, 65, 85)     # Slate 700
     
+    # Helper to clear shape text and populate with styled answers
+    def populate_slide_questions(shape, sections):
+        tf = shape.text_frame
+        tf.clear()
+        tf.word_wrap = True
+        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+        
+        for idx, sec in enumerate(sections):
+            # Question Heading
+            p_q = tf.add_paragraph() if idx > 0 else tf.paragraphs[0]
+            p_q.text = sec['question']
+            p_q.font.size = Pt(14)
+            p_q.font.bold = True
+            p_q.font.color.rgb = TEXT_COLOR_DARK
+            p_q.font.name = 'Segoe UI'
+            p_q.space_after = Pt(6)
+            if idx > 0:
+                p_q.space_before = Pt(14)
+                
+            # Bullets
+            for bullet in sec['bullets']:
+                p_b = tf.add_paragraph()
+                p_b.text = "•  " + bullet
+                p_b.font.size = Pt(11.5)
+                p_b.font.color.rgb = TEXT_COLOR_BODY
+                p_b.font.name = 'Segoe UI'
+                p_b.space_after = Pt(4)
+
     def remove_shadow(shape):
         try:
             spPr = shape.element.spPr
-            # Remove drop shadow effects inside the shape XML to ensure it's flat
             effectLst = spPr.find('{http://schemas.openxmlformats.org/drawingml/2006/main}effectLst')
             if effectLst is not None:
                 spPr.remove(effectLst)
         except:
             pass
 
-    def apply_bg(slide, slide_num):
-        # Insert extracted reference slide image as background
-        bg_path = f"template_images/slide_{slide_num}.png"
-        slide.shapes.add_picture(bg_path, 0, 0, prs.slide_width, prs.slide_height)
-        return slide
-        
-    def apply_content_mask(slide):
-        # Add a shadowless, borderless white shape mask to cover placeholder bullets/questions in the reference PDF
-        # We start at y=1.2 (below header logo) and stop at y=6.9 (above footer line)
-        mask = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(1.2), Inches(11.933), Inches(5.7))
-        mask.fill.solid()
-        mask.fill.fore_color.rgb = RGBColor(255, 255, 255) # Pure White
-        mask.line.fill.background()      # Transparent / background matching border
-        remove_shadow(mask)
-        return slide
-
-    def add_slide_header(slide, title_text):
-        # Write slide header natively in clean font
-        tb = slide.shapes.add_textbox(Inches(0.75), Inches(1.3), Inches(11.833), Inches(0.6))
-        tf = tb.text_frame
-        tf.word_wrap = True
-        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
-        p = tf.paragraphs[0]
-        p.text = title_text
-        p.font.size = Pt(24)
-        p.font.bold = True
-        p.font.color.rgb = TEXT_COLOR_DARK
-        p.font.name = 'Segoe UI'
-
-    def populate_section(tf, sec, is_first=True):
-        # Question text (Sub-header)
-        p_q = tf.paragraphs[0] if is_first else tf.add_paragraph()
-        p_q.text = sec['question']
-        p_q.font.size = Pt(14)
-        p_q.font.bold = True
-        p_q.font.color.rgb = TEXT_COLOR_DARK
-        p_q.font.name = 'Segoe UI'
-        p_q.space_after = Pt(6)
-        if not is_first:
-            p_q.space_before = Pt(14)
-            
-        # Bullet points (Answers)
-        for bullet in sec['bullets']:
-            p_b = tf.add_paragraph()
-            p_b.text = "•  " + bullet
-            p_b.font.size = Pt(11.5)
-            p_b.font.color.rgb = TEXT_COLOR_BODY
-            p_b.font.name = 'Segoe UI'
-            p_b.space_after = Pt(4)
-
-    def add_slide_content(slide, title_text, sections):
-        apply_content_mask(slide)
-        add_slide_header(slide, title_text)
-        
-        num_sections = len(sections)
-        if num_sections == 1:
-            txBox = slide.shapes.add_textbox(Inches(0.75), Inches(2.0), Inches(11.833), Inches(4.8))
-            tf = txBox.text_frame
-            tf.word_wrap = True
-            tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
-            populate_section(tf, sections[0], is_first=True)
-        elif num_sections == 2:
-            col_w = Inches(5.6)
-            gap = Inches(0.6)
-            for idx, sec in enumerate(sections):
-                x = Inches(0.75) + idx * (col_w + gap)
-                txBox = slide.shapes.add_textbox(x, Inches(2.0), col_w, Inches(4.8))
-                tf = txBox.text_frame
-                tf.word_wrap = True
-                tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
-                populate_section(tf, sec, is_first=True)
-        elif num_sections == 3:
-            col_w = Inches(3.6)
-            gap = Inches(0.5)
-            for idx, sec in enumerate(sections):
-                x = Inches(0.75) + idx * (col_w + gap)
-                txBox = slide.shapes.add_textbox(x, Inches(2.0), col_w, Inches(4.8))
-                tf = txBox.text_frame
-                tf.word_wrap = True
-                tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
-                populate_section(tf, sec, is_first=True)
-
     # =========================================================================
-    # Slide 1: Title Slide
+    # Slide 1: Title Slide (Edit Native Text Frames)
     # =========================================================================
-    slide1 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide1, 1)
-    
-    # Mask out the template's placeholder label lines at the bottom using a shadowless white rectangle
-    mask1 = slide1.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(4.0), Inches(11.933), Inches(2.9))
-    mask1.fill.solid()
-    mask1.fill.fore_color.rgb = RGBColor(255, 255, 255)
-    mask1.line.fill.background()
-    remove_shadow(mask1)
-    
-    # Place custom team details text box
-    tb = slide1.shapes.add_textbox(Inches(0.75), Inches(4.2), Inches(11.833), Inches(2.7))
-    tf = tb.text_frame
-    tf.word_wrap = True
-    tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
-    
-    p1 = tf.paragraphs[0]
-    p1.text = "Team Name : "
-    p1.font.bold = True
-    p1.font.size = Pt(16)
-    p1.font.color.rgb = TEXT_COLOR_DARK
-    p1.font.name = 'Segoe UI'
-    
-    p1_val = p1.add_run()
-    p1_val.text = "vamsi krishna"
-    p1_val.font.bold = False
-    p1_val.font.color.rgb = TEXT_COLOR_BODY
-    
-    p2 = tf.add_paragraph()
-    p2.text = "Team Leader Name : "
-    p2.font.bold = True
-    p2.font.size = Pt(16)
-    p2.font.color.rgb = TEXT_COLOR_DARK
-    p2.font.name = 'Segoe UI'
-    p2.space_before = Pt(8)
-    
-    p2_val = p2.add_run()
-    p2_val.text = "vamshi krishna vemula(leader)"
-    p2_val.font.bold = False
-    p2_val.font.color.rgb = TEXT_COLOR_BODY
-    
-    p3 = tf.add_paragraph()
-    p3.text = "Problem Statement : "
-    p3.font.bold = True
-    p3.font.size = Pt(16)
-    p3.font.color.rgb = TEXT_COLOR_DARK
-    p3.font.name = 'Segoe UI'
-    p3.space_before = Pt(8)
-    
-    p3_val = p3.add_run()
-    p3_val.text = "Design and build an offline, production-grade candidate ranking system that accurately identifies the top 100 fits from a 100,000 candidate pool for a 'Senior AI Engineer' role in under 5 minutes on CPU, programmatically detecting and filtering out all keyword stuffers, fake startups, and honeypot profiles."
-    p3_val.font.bold = False
-    p3_val.font.color.rgb = TEXT_COLOR_BODY
+    slide1 = prs.slides[0]
+    for shape in slide1.shapes:
+        if shape.has_text_frame:
+            text = shape.text_frame.text.strip()
+            if "Team Name :" in text:
+                shape.text_frame.text = "Team Name : vamsi krishna"
+            elif "Team Leader Name :" in text:
+                shape.text_frame.text = "Team Leader Name : vamshi krishna vemula(leader)"
+            elif "Problem Statement :" in text:
+                shape.text_frame.text = "Problem Statement : Design and build an offline, production-grade candidate ranking system that accurately identifies the top 100 fits from a 100,000 candidate pool for a 'Senior AI Engineer' role in under 5 minutes on CPU, programmatically detecting and filtering out all keyword stuffers, fake startups, and honeypot profiles."
 
     # =========================================================================
     # Slide 2: Solution Overview
     # =========================================================================
-    slide2 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide2, 2)
-    
+    slide2 = prs.slides[1]
     s2_sections = [
         {
             'question': "What is your proposed solution?",
             'bullets': [
-                "An offline hybrid scoring pipeline that integrates dense semantic text similarity with a multi-criteria structured profile score.",
+                "An offline hybrid scoring pipeline that integrates dense semantic text similarity with a multi-criteria structured compatibility score.",
                 "Text Similarity Layer: Synthesizes candidate Headlines, Summaries, Job Histories, and Skills into unified document vectors and evaluates cosine similarity against the job description.",
-                "Structured Layer: Evaluates experience years compatibility, title keyword hierarchies, notice period, location proximity, and candidate engagement."
+                "Structured Layer: Evaluates experience years compatibility, job title hierarchies, notice period, location proximity, and candidate engagement."
             ]
         },
         {
@@ -191,14 +93,13 @@ def create_presentation():
             ]
         }
     ]
-    add_slide_content(slide2, "Solution Overview", s2_sections)
+    # Shape 2 has the placeholder questions on Slide 2
+    populate_slide_questions(slide2.shapes[2], s2_sections)
 
     # =========================================================================
     # Slide 3: JD Understanding & Candidate Evaluation
     # =========================================================================
-    slide3 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide3, 3)
-    
+    slide3 = prs.slides[2]
     s3_sections = [
         {
             'question': "What are the key requirements extracted from the JD?",
@@ -206,7 +107,7 @@ def create_presentation():
                 "Experience Level: Preferred 5-9 years of total experience band.",
                 "Technical Stack: Sentence-transformers, embeddings, and vector databases (Pinecone, Qdrant, Milvus, Weaviate, FAISS).",
                 "Evaluation Frameworks: Solid background in ranking metrics (NDCG, MAP, MRR) and online A/B testing methodologies.",
-                "Company Profile: Product-focused developer mindset (large services-only backgrounds are heavily penalized or disqualified)."
+                "Company Profile: Targets product-focused developer mindset (large services-only backgrounds are heavily penalized or disqualified)."
             ]
         },
         {
@@ -219,14 +120,12 @@ def create_presentation():
             ]
         }
     ]
-    add_slide_content(slide3, "JD Understanding & Candidate Evaluation", s3_sections)
+    populate_slide_questions(slide3.shapes[2], s3_sections)
 
     # =========================================================================
     # Slide 4: Ranking Methodology
     # =========================================================================
-    slide4 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide4, 4)
-    
+    slide4 = prs.slides[3]
     s4_sections = [
         {
             'question': "How does your system retrieve, score, and rank candidates?",
@@ -245,19 +144,17 @@ def create_presentation():
         {
             'question': "How are multiple candidate signals combined into a final ranking?",
             'bullets': [
-                "Fused via multiplicative scaling: Final = (TFIDF + 0.05) x Structured x Loc_Mult x Notice_Mult x Behavior_Mult.",
+                "Fused via multiplicative scaling: Final Score = (Semantic Textual Match + Baseline Offset) x Structured Compatibility Score x Location Weight x Notice Period Multiplier x Behavioral Engagement Multiplier.",
                 "Ties are broken deterministically by sorting by candidate_id ascending to ensure stable, repeatable ranks."
             ]
         }
     ]
-    add_slide_content(slide4, "Ranking Methodology", s4_sections)
+    populate_slide_questions(slide4.shapes[2], s4_sections)
 
     # =========================================================================
     # Slide 5: Explainability & Data Validation
     # =========================================================================
-    slide5 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide5, 5)
-    
+    slide5 = prs.slides[4]
     s5_sections = [
         {
             'question': "How are ranking decisions explained?",
@@ -274,7 +171,7 @@ def create_presentation():
             ]
         },
         {
-            'question': "How does your solution handle inconsistent or suspicious profiles?",
+            'question': "How does your solution handle inconsistent, low-quality, or suspicious profiles?",
             'bullets': [
                 "Flagged Start Dates: Disqualifies candidates claiming experience at Krutrim or Sarvam AI prior to their actual 2023 founding.",
                 "Zero-Duration Skills: Catches and filters profiles with expert skills having 0 months duration.",
@@ -282,40 +179,35 @@ def create_presentation():
             ]
         }
     ]
-    add_slide_content(slide5, "Explainability & Data Validation", s5_sections)
+    populate_slide_questions(slide5.shapes[2], s5_sections)
 
     # =========================================================================
     # Slide 6: End-to-End Workflow
     # =========================================================================
-    slide6 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide6, 6)
-    
+    slide6 = prs.slides[5]
     s6_sections = [
         {
             'question': "What is the complete workflow from JD input to ranked candidate output?",
             'bullets': [
-                "1. Load Data: Read candidates.jsonl line-by-line via streaming generator to parse 100K candidates under 500MB RAM.",
-                "2. Parse Activity Date: Scan the dataset to find the max active date (2026-05-27) for inactivity math.",
-                "3. Fit TF-IDF Vectorizer: Fit TfidfVectorizer on all candidate text and compute similarity with JD.",
-                "4. Exclude Honeypots & Disqualified: Run hard filters on dates, zero-duration expert skills, and consulting.",
-                "5. Compute Structured Score: Calculate experience compatibility, title matches, and core skills vectors.",
-                "6. Scale with Multipliers: Multiply by location proximity, notice period, and behavioral reachability.",
-                "7. Sort & Rank: Sort descending by score and ascending by ID, selecting the top 100.",
-                "8. Generate Rationale & Save: Compile factual reasoning strings and write output to vamsi_krishna.csv."
+                "1. Data Ingestion: Stream candidate JSONL records line-by-line using a generator to parse 100K profiles efficiently.",
+                "2. Recency Scan: Establish a baseline active date from the dataset to calculate inactivity decay.",
+                "3. Semantic Vector Indexing: Fit the text vectorizer on the candidate corpus and evaluate cosine similarity against the job description.",
+                "4. Profile Vetting & Filtering: Exclude honeypots, consulting-only, and non-technical titles.",
+                "5. Compatibility Scoring: Calculate experience compatibility, title relevance, and skills vectors.",
+                "6. Contextual Multipliers: Adjust base scores using location compatibility, notice period availability, and platform active dates.",
+                "7. Sorting & Tie-Breaking: Sort candidates by score descending, breaking ties by candidate ID ascending.",
+                "8. Output Shortlist: Compile factual reasoning text and write the top 100 entries to vamsi_krishna.csv."
             ]
         }
     ]
-    add_slide_content(slide6, "End-to-End Workflow", s6_sections)
+    populate_slide_questions(slide6.shapes[2], s6_sections)
 
     # =========================================================================
-    # Slide 7: System Architecture
+    # Slide 7: System Architecture (Draw native diagram on slide 7)
     # =========================================================================
-    slide7 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide7, 7)
-    apply_content_mask(slide7)
-    add_slide_header(slide7, "System Architecture")
+    slide7 = prs.slides[6]
     
-    # Draw Architecture flow chart using native shapes
+    # Draw flowchart shapes natively
     box_w = Inches(1.85)
     box_h = Inches(1.5)
     start_x = Inches(0.8)
@@ -337,7 +229,7 @@ def create_presentation():
         # Rounded Rectangle Box
         shape = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, box_w, box_h)
         shape.fill.solid()
-        shape.fill.fore_color.rgb = RGBColor(248, 250, 252) # Slate 50 (Very light gray)
+        shape.fill.fore_color.rgb = RGBColor(248, 250, 252) # Slate 50
         shape.line.color.rgb = TEXT_COLOR_DARK             # Slate 900 border
         shape.line.width = Pt(1.5)
         remove_shadow(shape)
@@ -402,9 +294,7 @@ def create_presentation():
     # =========================================================================
     # Slide 8: Results & Performance
     # =========================================================================
-    slide8 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide8, 8)
-    
+    slide8 = prs.slides[7]
     s8_sections = [
         {
             'question': "What results or insights demonstrate ranking quality?",
@@ -423,33 +313,29 @@ def create_presentation():
             ]
         }
     ]
-    add_slide_content(slide8, "Results & Performance", s8_sections)
+    populate_slide_questions(slide8.shapes[2], s8_sections)
 
     # =========================================================================
     # Slide 9: Technologies Used
     # =========================================================================
-    slide9 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide9, 9)
-    
+    slide9 = prs.slides[8]
     s9_sections = [
         {
             'question': "What technologies, frameworks, and tools were used and why were they selected for this solution?",
             'bullets': [
-                "Python: Chosen for robust scripting, stream parsing, and data cleaning.",
-                "Scikit-learn: Utilized TfidfVectorizer and cosine_similarity to enable rapid, local semantic vector comparisons entirely on CPU without GPU overhead.",
-                "NumPy & Pandas: Used for vectorized, fast mathematical matrix score scaling and deterministic candidate sorting.",
-                "PyMuPDF (fitz) & python-pptx: Enabled high-resolution template background extraction and automated slide compiling."
+                "Python: Core language for pipeline scripting, stream parsing, and data cleaning.",
+                "Scikit-learn: Utilized for vector representation and cosine similarity matrix operations (enables fast CPU text similarity).",
+                "NumPy & Pandas: Used for vectorized candidate matrix sorting, fast scoring calculations, and CSV operations.",
+                "python-pptx: Enabled editing and updating the native PowerPoint presentation template."
             ]
         }
     ]
-    add_slide_content(slide9, "Technologies Used", s9_sections)
+    populate_slide_questions(slide9.shapes[2], s9_sections)
 
     # =========================================================================
     # Slide 10: Submission Assets
     # =========================================================================
-    slide10 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide10, 10)
-    
+    slide10 = prs.slides[9]
     s10_sections = [
         {
             'question': "What assets are complete and available in the workspace?",
@@ -458,19 +344,16 @@ def create_presentation():
                 "HuggingFace Space Demo Link: https://huggingface.co/spaces/vamsi-2003/data-ai-challenge",
                 "Ranked Output (CSV): vamsi_krishna.csv (contains the top 100 candidates with custom rationales)",
                 "Submission Metadata: submission_metadata.yaml (containing team name, leader name, and methodology)",
-                "Approach Presentation: vamsi_krishna_approach_v2.pptx (this generated slide deck, ready for PDF export)"
+                "Approach Presentation: vamsi_krishna_approach_v3.pptx (this generated slide deck, ready for PDF export)"
             ]
         }
     ]
-    add_slide_content(slide10, "Submission Assets", s10_sections)
+    populate_slide_questions(slide10.shapes[2], s10_sections)
 
     # =========================================================================
     # Slide 11: Thank You
     # =========================================================================
-    slide11 = prs.slides.add_slide(prs.slide_layouts[6])
-    apply_bg(slide11, 11)
-    
-    # Overlay team credentials on thank you slide at bottom in white text
+    slide11 = prs.slides[10]
     tb11 = slide11.shapes.add_textbox(Inches(1.0), Inches(5.8), Inches(11.333), Inches(1.0))
     tf11 = tb11.text_frame
     tf11.word_wrap = True
@@ -483,8 +366,8 @@ def create_presentation():
     p11.font.name = 'Segoe UI'
     p11.alignment = 1 # Center
     
-    prs.save('vamsi_krishna_approach_v3.pptx')
-    print("Successfully created template-identical widescreen vamsi_krishna_approach_v3.pptx!")
+    prs.save(output_path)
+    print(f"Successfully created native, clean PPTX at: {output_path}")
 
 if __name__ == '__main__':
     create_presentation()
